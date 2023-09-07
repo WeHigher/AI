@@ -2,9 +2,11 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import numpy as np
 from tensorflow.keras.models import load_model
+import tensorflow as tf
 from dotenv import load_dotenv
 import os
 import openai
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -35,14 +37,23 @@ def wordRecognition():
             left_data = empty
             right_data = np.array([right], dtype=np.float32)
         pair = np.array([left_data, right_data])
-        full_data = np.vstack((full_data, [pair]))
+        full_data = np.vstack((full_data, [pair])) # shape = (30, 2, 78) => (1, 199, 156)
 
     # 모델 파일(.h5)을 불러오기
-    model = load_model('your_model.h5')
+    model = load_model('model4.h5')
+    labels = np.load('classes4.npy')
 
-    predictions = model.predict(full_data)
+    full_data = full_data.reshape(full_data[0], -1) # (30, 156)
+    tmp = np.zeros(shape=(199, 156))
+    tmp[:full_data.shape[0], :] = full_data # (199, 156)
 
-    return predictions
+    data = np.empty(shape=(0, 199, 156))
+    data = np.vstack((data, [tmp])) # (1, 199, 156)
+
+    predictions = model.predict(data)
+    word = labels[predictions[0].argmax()]
+
+    return jsonify(word)
 
 
 @app.route('/sentense', methods=['POST'])
