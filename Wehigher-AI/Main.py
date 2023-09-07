@@ -18,32 +18,33 @@ openai.api_key = API_KEY
 def wordRecognition():
 
     data = request.get_json()  # JSON 데이터를 받아옴
-
+    # print(data)
     # data 전처리
     empty = np.zeros((78,))
     full_data = np.empty(shape=(0, 2, 78))
     left_data = []
     right_data = []
 
-    for left, right in data:
+    for d in data:
         # 양손 일 때
-        if len(left) != 0 and len(right) != 0:
-            left_data = np.array([left], dtype=np.float32)
-            right_data = np.array([right], dtype=np.float32)
-        elif len(left) != 0 and len(right) == 0:
-            left_data = np.array([left], dtype=np.float32)
+        if len(d['left']) != 0 and len(d['right']) != 0:
+            left_data = np.array(d['left'], dtype=np.float32)
+            right_data = np.array(d['right'], dtype=np.float32)
+        elif len(d['left']) != 0 and len(d['right']) == 0:
+            left_data = np.array(d['left'], dtype=np.float32)
             right_data = empty
-        elif len(left) == 0 and len(right) != 0:
+        elif len(d['left']) == 0 and len(d['right']) != 0:
             left_data = empty
-            right_data = np.array([right], dtype=np.float32)
+            right_data = np.array(d['right'], dtype=np.float32)
         pair = np.array([left_data, right_data])
         full_data = np.vstack((full_data, [pair])) # shape = (30, 2, 78) => (1, 199, 156)
+
+
 
     # 모델 파일(.h5)을 불러오기
     model = load_model('model4.h5')
     labels = np.load('classes4.npy')
-
-    full_data = full_data.reshape(full_data[0], -1) # (30, 156)
+    full_data = full_data.reshape(full_data.shape[0], -1) # (30, 156)
     tmp = np.zeros(shape=(199, 156))
     tmp[:full_data.shape[0], :] = full_data # (199, 156)
 
@@ -52,7 +53,7 @@ def wordRecognition():
 
     predictions = model.predict(data)
     word = labels[predictions[0].argmax()]
-
+    print(word)
     return jsonify(word)
 
 
@@ -81,8 +82,8 @@ def sentenceCreate():
         model=model,
         messages=messages
     )
-
-    return jsonify(response)
+    print(response["choices"][0]["message"]["content"])
+    return jsonify(response["choices"][0]["message"]["content"])
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="127.0.0.1", port=5000)
 
